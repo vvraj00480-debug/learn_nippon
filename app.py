@@ -283,6 +283,94 @@ HTML = r"""
   }
   .set-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.08); }
 
+  /* Row picker */
+  .row-picker {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+  .row-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .row-picker-header:hover { background: var(--surface2); }
+  .row-picker.open .row-picker-header { border-bottom-color: var(--border); }
+  .row-picker-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .row-picker-count {
+    background: var(--accent-dim);
+    color: #c4b5fd;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    border: 1px solid var(--accent);
+  }
+  .row-picker-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .rp-action-btn {
+    padding: 3px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 10px;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .rp-action-btn:hover { border-color: var(--text-dim); color: var(--text-dim); }
+  .chevron {
+    color: var(--text-muted);
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .row-picker.open .chevron { transform: rotate(180deg); }
+  .row-picker-body {
+    display: none;
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .row-picker.open .row-picker-body { display: flex; }
+  .row-chip {
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .row-chip:hover { border-color: var(--text-dim); color: var(--text); }
+  .row-chip.selected { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
+  .row-chip .chip-count { font-size: 10px; color: inherit; opacity: 0.6; }
+
   .quiz-progress-bar {
     height: 3px;
     background: var(--border);
@@ -664,6 +752,22 @@ HTML = r"""
         <button class="set-btn" onclick="setQuizSet('weak')" id="qset-weak">Weak</button>
       </div>
 
+      <!-- Row picker -->
+      <div class="row-picker" id="rowPicker">
+        <div class="row-picker-header" onclick="toggleRowPicker()">
+          <div class="row-picker-label">
+            Rows
+            <span class="row-picker-count" id="rowPickerCount">all</span>
+          </div>
+          <div class="row-picker-actions">
+            <button class="rp-action-btn" onclick="event.stopPropagation(); selectAllRows()">All</button>
+            <button class="rp-action-btn" onclick="event.stopPropagation(); clearAllRows()">None</button>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="row-picker-body" id="rowPickerBody"></div>
+      </div>
+
       <div class="quiz-progress-bar">
         <div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div>
       </div>
@@ -725,6 +829,31 @@ HTML = r"""
   </div>
 
 </div>
+
+<!-- Footer -->
+<footer style="
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 32px 24px 40px;
+  border-top: 1px solid #2a2a42;
+  margin-top: 40px;
+">
+  <div style="
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #4a4438;
+    margin-bottom: 6px;
+  ">作成者</div>
+  <div style="
+    font-family: 'Crimson Pro', serif;
+    font-size: 18px;
+    font-weight: 300;
+    letter-spacing: 4px;
+    color: #8a8070;
+  ">Created by <span style="color: #c9a84c; font-weight: 400;">Vishnuvardhan Raj</span></div>
+</footer>
 
 <script>
 // ===================== DATA =====================
@@ -839,9 +968,12 @@ const KATAKANA = [
 ];
 
 // Flatten all chars
-const allHiragana = HIRAGANA.flatMap(r => r.chars.map(c => ({...c, script:'hiragana'})));
-const allKatakana = KATAKANA.flatMap(r => r.chars.map(c => ({...c, script:'katakana'})));
+const allHiragana = HIRAGANA.flatMap(r => r.chars.map(c => ({...c, script:'hiragana', row: r.rows})));
+const allKatakana = KATAKANA.flatMap(r => r.chars.map(c => ({...c, script:'katakana', row: r.rows})));
 const allChars = [...allHiragana, ...allKatakana];
+
+// All unique row names (same across scripts)
+const ALL_ROW_NAMES = HIRAGANA.map(r => r.rows);
 
 // ===================== STATE =====================
 let progress = {}; // {glyph: {correct, total}}
@@ -853,6 +985,7 @@ let sessionCorrect = 0, sessionIncorrect = 0, sessionTotal = 0;
 let answered = false;
 let streak = 0;
 let lastStudyDate = '';
+let selectedRows = new Set(ALL_ROW_NAMES); // all selected by default
 
 // ===================== LOCAL STORAGE =====================
 function saveProgress() {
@@ -965,20 +1098,111 @@ function setQuizSet(set) {
   ['both','hiragana','katakana','weak'].forEach(s => {
     document.getElementById('qset-'+s).classList.toggle('active', s === set);
   });
+  // Reset row selection to all when switching script set
+  selectedRows = new Set(ALL_ROW_NAMES);
+  renderRowPicker();
   nextQuestion();
+}
+
+// ===================== ROW PICKER =====================
+function toggleRowPicker() {
+  document.getElementById('rowPicker').classList.toggle('open');
+}
+
+function renderRowPicker() {
+  const body = document.getElementById('rowPickerBody');
+  const picker = document.getElementById('rowPicker');
+  const countEl = document.getElementById('rowPickerCount');
+
+  // Hide row picker entirely for 'weak' mode (it already filters by mastery)
+  if (quizSet === 'weak') {
+    picker.style.display = 'none';
+    return;
+  }
+  picker.style.display = '';
+
+  body.innerHTML = '';
+
+  // Figure out which rows have chars in the current pool (before row filter)
+  const basePool = getBasePool();
+  // Count chars per row in base pool
+  const rowCounts = {};
+  basePool.forEach(c => {
+    rowCounts[c.row] = (rowCounts[c.row] || 0) + 1;
+  });
+
+  ALL_ROW_NAMES.forEach(name => {
+    if (!rowCounts[name]) return; // skip rows with no chars in current script
+    const count = rowCounts[name];
+    const chip = document.createElement('button');
+    chip.className = 'row-chip' + (selectedRows.has(name) ? ' selected' : '');
+    chip.innerHTML = `${name} <span class="chip-count">${count}</span>`;
+    chip.onclick = () => toggleRow(name);
+    body.appendChild(chip);
+  });
+
+  // Update count badge
+  const totalRows = Object.keys(rowCounts).length;
+  const selCount = [...selectedRows].filter(r => rowCounts[r]).length;
+  countEl.textContent = selCount === totalRows ? 'all' : `${selCount}/${totalRows}`;
+}
+
+function toggleRow(name) {
+  if (selectedRows.has(name)) {
+    // Don't allow deselecting the last row
+    const basePool = getBasePool();
+    const rowCounts = {};
+    basePool.forEach(c => { rowCounts[c.row] = true; });
+    const visibleSelected = [...selectedRows].filter(r => rowCounts[r]);
+    if (visibleSelected.length <= 1) return;
+    selectedRows.delete(name);
+  } else {
+    selectedRows.add(name);
+  }
+  renderRowPicker();
+  nextQuestion();
+}
+
+function selectAllRows() {
+  selectedRows = new Set(ALL_ROW_NAMES);
+  renderRowPicker();
+  nextQuestion();
+}
+
+function clearAllRows() {
+  // Keep at least the first row
+  const basePool = getBasePool();
+  const firstRow = basePool[0]?.row;
+  selectedRows = new Set(firstRow ? [firstRow] : [ALL_ROW_NAMES[0]]);
+  renderRowPicker();
+  nextQuestion();
+}
+
+// Base pool without row filter (only script filter)
+function getBasePool() {
+  if (quizSet === 'hiragana') return allHiragana;
+  if (quizSet === 'katakana') return allKatakana;
+  return allChars;
 }
 
 function getQuizPool() {
   let pool;
-  if (quizSet === 'hiragana') pool = allHiragana;
-  else if (quizSet === 'katakana') pool = allKatakana;
-  else if (quizSet === 'weak') {
+  if (quizSet === 'weak') {
     pool = allChars.filter(c => {
       const s = getStatus(c.g);
       return s === 'struggling' || s === 'learning' || s === 'new';
     });
     if (pool.length < 4) pool = allChars;
-  } else pool = allChars;
+    return pool;
+  }
+
+  pool = getBasePool();
+  // Apply row filter
+  if (selectedRows.size < ALL_ROW_NAMES.length) {
+    pool = pool.filter(c => selectedRows.has(c.row));
+  }
+  // Ensure at least some chars
+  if (pool.length === 0) pool = getBasePool();
   return pool;
 }
 
@@ -1137,6 +1361,7 @@ function renderProgressPage() {
 // ===================== INIT =====================
 loadProgress();
 renderLearnGrid();
+renderRowPicker();
 nextQuestion();
 </script>
 </body>
