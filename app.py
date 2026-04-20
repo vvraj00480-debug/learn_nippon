@@ -688,6 +688,236 @@ HTML = r"""
 
   @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
   .flashcard.pop { animation: pop 0.3s ease; }
+
+  /* ====== STROKE ORDER MODAL ====== */
+  .stroke-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .stroke-overlay.open { opacity: 1; pointer-events: all; }
+
+  .stroke-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    width: min(520px, 92vw);
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 32px;
+    position: relative;
+    transform: translateY(16px);
+    transition: transform 0.25s;
+  }
+  .stroke-overlay.open .stroke-modal { transform: none; }
+
+  .stroke-close {
+    position: absolute;
+    top: 16px; right: 20px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .stroke-close:hover { color: var(--text); }
+
+  .stroke-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .stroke-glyph {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 56px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stroke-romaji {
+    font-family: 'Crimson Pro', serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-top: 4px;
+  }
+  .stroke-script-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* SVG display area */
+  .stroke-components {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .stroke-component {
+    flex: 1;
+    min-width: 140px;
+    max-width: 220px;
+  }
+  .stroke-component-label {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .stroke-svg-wrap {
+    background: #f8f4ee;
+    border-radius: 14px;
+    padding: 12px;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stroke-svg-wrap svg {
+    width: 100%;
+    height: 100%;
+  }
+  /* Grid guide lines */
+  .stroke-svg-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(#c8bfb0 1px, transparent 1px),
+      linear-gradient(90deg, #c8bfb0 1px, transparent 1px),
+      linear-gradient(rgba(200,191,176,0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,191,176,0.4) 1px, transparent 1px);
+    background-size: 50% 50%, 50% 50%, 25% 25%, 25% 25%;
+    pointer-events: none;
+    border-radius: 14px;
+  }
+  .stroke-loading {
+    font-family: 'Crimson Pro', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #8a7060;
+    text-align: center;
+    padding: 20px;
+  }
+  .stroke-error {
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    color: #b08070;
+    text-align: center;
+    padding: 16px;
+  }
+
+  /* Stroke number bubbles */
+  .stroke-nums-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .stroke-num-bubble {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-muted);
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+  }
+  .stroke-num-bubble.active { background: var(--gold); color: #0d0d14; font-weight: 600; }
+  .stroke-num-bubble.done { background: var(--accent-dim); color: #c4b5fd; }
+
+  /* Controls */
+  .stroke-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .stroke-play-btn {
+    padding: 10px 28px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    color: #c4b5fd;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stroke-play-btn:hover { background: var(--accent); color: white; }
+  .stroke-speed-group {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .speed-btn {
+    padding: 5px 12px;
+    background: none;
+    border: none;
+    border-radius: 7px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .speed-btn.active { background: var(--surface); color: var(--text); }
+
+  .stroke-count-label {
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* Stroke button on quiz */
+  .stroke-hint-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .stroke-hint-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
 </style>
 </head>
 <body>
@@ -791,6 +1021,10 @@ HTML = r"""
 
       <button class="next-btn" id="nextBtn" onclick="nextQuestion()" style="display:none">Next →</button>
 
+      <button class="stroke-hint-btn" id="strokeHintBtn" onclick="openStrokeModal(currentChar.g, currentChar.r, currentChar.script)">
+        ✍ Show stroke order
+      </button>
+
       <div class="stats-row">
         <div class="stat-pill correct">✓ <span id="qCorrect">0</span></div>
         <div class="stat-pill incorrect">✗ <span id="qIncorrect">0</span></div>
@@ -828,6 +1062,27 @@ HTML = r"""
     <button class="reset-btn" onclick="resetProgress()">Reset All Progress</button>
   </div>
 
+</div>
+
+<!-- Stroke Order Modal -->
+<div class="stroke-overlay" id="strokeOverlay" onclick="closeStrokeModal(event)">
+  <div class="stroke-modal">
+    <button class="stroke-close" onclick="closeStrokeModalDirect()">✕</button>
+    <div class="stroke-header">
+      <div class="stroke-glyph" id="modalGlyph"></div>
+      <div class="stroke-romaji" id="modalRomaji"></div>
+      <div class="stroke-script-label" id="modalScript"></div>
+    </div>
+    <div class="stroke-components" id="strokeComponents"></div>
+    <div class="stroke-controls">
+      <button class="stroke-play-btn" id="strokePlayBtn" onclick="replayAll()">▶ Replay</button>
+      <div class="stroke-speed-group">
+        <button class="speed-btn" onclick="setSpeed(0.5)" id="spd-slow">slow</button>
+        <button class="speed-btn active" onclick="setSpeed(1)" id="spd-normal">normal</button>
+        <button class="speed-btn" onclick="setSpeed(2)" id="spd-fast">fast</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Footer -->
@@ -1076,7 +1331,8 @@ function renderLearnGrid() {
         <div class="char-glyph">${c.g}</div>
         <div class="char-romaji">${c.r}</div>
       `;
-      card.title = `${c.g} = ${c.r}`;
+      card.title = `${c.g} = ${c.r} · Click for stroke order`;
+      card.onclick = () => openStrokeModal(c.g, c.r, learnScript);
       grid.appendChild(card);
     });
     container.appendChild(grid);
@@ -1227,6 +1483,7 @@ function nextQuestion() {
   document.getElementById('cardFeedback').textContent = '';
   document.getElementById('cardHint').textContent = currentChar.script === 'hiragana' ? 'Hiragana · What is the romaji?' : 'Katakana · What is the romaji?';
   document.getElementById('nextBtn').style.display = 'none';
+  document.getElementById('strokeHintBtn').style.display = 'none';
 
   // Update progress bar (session)
   const total = sessionCorrect + sessionIncorrect;
@@ -1280,6 +1537,7 @@ function handleChoice(romaji, btn) {
   });
 
   document.getElementById('nextBtn').style.display = 'block';
+  document.getElementById('strokeHintBtn').style.display = 'block';
   renderLearnGrid();
 }
 
@@ -1302,15 +1560,9 @@ function submitType() {
   inp.disabled = true;
 
   document.getElementById('nextBtn').style.display = 'block';
+  document.getElementById('strokeHintBtn').style.display = 'block';
   renderLearnGrid();
 }
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('page-quiz').classList.contains('hidden') === false) {
-    if (answered) nextQuestion();
-    else if (quizMode === 'type') submitType();
-  }
-});
 
 function updateStatsDisplay() {
   document.getElementById('qCorrect').textContent = sessionCorrect;
@@ -1363,6 +1615,206 @@ loadProgress();
 renderLearnGrid();
 renderRowPicker();
 nextQuestion();
+
+// ===================== STROKE ORDER =====================
+let strokeSpeed = 1;
+let strokeAnimTimers = [];
+let currentModalChar = null;
+
+function toKanjiVGHex(char) {
+  return char.codePointAt(0).toString(16).padStart(5, '0');
+}
+
+function getKanjiVGUrl(char) {
+  return `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${toKanjiVGHex(char)}.svg`;
+}
+
+function openStrokeModal(glyph, romaji, script) {
+  currentModalChar = { glyph, romaji, script };
+  document.getElementById('modalGlyph').textContent = glyph;
+  document.getElementById('modalRomaji').textContent = romaji;
+  document.getElementById('modalScript').textContent = script === 'hiragana' ? 'ひらがな · Hiragana' : 'カタカナ · Katakana';
+  document.getElementById('strokeOverlay').classList.add('open');
+  document.getElementById('strokeComponents').innerHTML = '<div class="stroke-loading">Loading stroke data…</div>';
+  loadAndRenderStrokes(glyph);
+}
+
+function closeStrokeModal(e) {
+  if (e.target === document.getElementById('strokeOverlay')) closeStrokeModalDirect();
+}
+function closeStrokeModalDirect() {
+  document.getElementById('strokeOverlay').classList.remove('open');
+  clearTimers();
+}
+
+function clearTimers() {
+  strokeAnimTimers.forEach(t => clearTimeout(t));
+  strokeAnimTimers = [];
+}
+
+function setSpeed(s) {
+  strokeSpeed = s;
+  ['slow','normal','fast'].forEach(id => {
+    document.getElementById('spd-'+id).classList.toggle('active', 
+      (id === 'slow' && s === 0.5) || (id === 'normal' && s === 1) || (id === 'fast' && s === 2)
+    );
+  });
+  replayAll();
+}
+
+async function loadAndRenderStrokes(glyph) {
+  const chars = [...glyph]; // handles multi-char combos like きゃ
+  const container = document.getElementById('strokeComponents');
+  container.innerHTML = '';
+  clearTimers();
+
+  const fetchedSVGs = await Promise.all(chars.map(async ch => {
+    try {
+      const res = await fetch(getKanjiVGUrl(ch));
+      if (!res.ok) throw new Error('Not found');
+      return { char: ch, svgText: await res.text() };
+    } catch {
+      return { char: ch, svgText: null };
+    }
+  }));
+
+  fetchedSVGs.forEach(({ char, svgText }, idx) => {
+    const comp = document.createElement('div');
+    comp.className = 'stroke-component';
+
+    if (chars.length > 1) {
+      const lbl = document.createElement('div');
+      lbl.className = 'stroke-component-label';
+      lbl.textContent = char;
+      comp.appendChild(lbl);
+    }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'stroke-svg-wrap';
+    wrap.id = `svgwrap-${idx}`;
+
+    if (!svgText) {
+      wrap.innerHTML = `<div class="stroke-error">Stroke data<br>unavailable</div>`;
+    } else {
+      wrap.innerHTML = svgText;
+      const svg = wrap.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('viewBox', '0 0 109 109');
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        // Style: hide original strokes, show only outlines
+        svg.querySelectorAll('path').forEach(p => {
+          p.setAttribute('fill', 'none');
+          p.setAttribute('stroke', '#d4c5b0');
+          p.setAttribute('stroke-width', '3');
+          p.setAttribute('stroke-linecap', 'round');
+          p.setAttribute('stroke-linejoin', 'round');
+        });
+        // Hide built-in stroke numbers text
+        svg.querySelectorAll('text').forEach(t => t.style.display = 'none');
+      }
+
+      // Stroke number bubbles
+      const paths = wrap.querySelectorAll('path');
+      const bubblesRow = document.createElement('div');
+      bubblesRow.className = 'stroke-nums-row';
+      bubblesRow.id = `bubbles-${idx}`;
+      paths.forEach((_, i) => {
+        const b = document.createElement('div');
+        b.className = 'stroke-num-bubble';
+        b.id = `bubble-${idx}-${i}`;
+        b.textContent = i + 1;
+        bubblesRow.appendChild(b);
+      });
+
+      const countLbl = document.createElement('div');
+      countLbl.className = 'stroke-count-label';
+      countLbl.textContent = `${paths.length} stroke${paths.length !== 1 ? 's' : ''}`;
+
+      comp.appendChild(wrap);
+      comp.appendChild(bubblesRow);
+      comp.appendChild(countLbl);
+      container.appendChild(comp);
+
+      // Start animation for this component
+      animateStrokes(wrap, idx, chars.length > 1 ? idx * 0.4 : 0);
+      return;
+    }
+
+    comp.appendChild(wrap);
+    container.appendChild(comp);
+  });
+}
+
+function animateStrokes(wrap, compIdx, initialDelay = 0) {
+  const paths = Array.from(wrap.querySelectorAll('path'));
+  if (!paths.length) return;
+
+  // Reset all
+  paths.forEach(p => {
+    const len = p.getTotalLength ? p.getTotalLength() : 100;
+    p.style.strokeDasharray = len;
+    p.style.strokeDashoffset = len;
+    p.style.stroke = '#d4c5b0';
+    p.style.transition = 'none';
+  });
+  // Reset bubbles
+  paths.forEach((_, i) => {
+    const b = document.getElementById(`bubble-${compIdx}-${i}`);
+    if (b) { b.className = 'stroke-num-bubble'; }
+  });
+
+  let cumDelay = initialDelay;
+  paths.forEach((path, i) => {
+    const len = path.getTotalLength ? path.getTotalLength() : 80;
+    const dur = Math.max(0.3, (len / 120) / strokeSpeed);
+
+    // Activate bubble
+    const t1 = setTimeout(() => {
+      const b = document.getElementById(`bubble-${compIdx}-${i}`);
+      if (b) b.className = 'stroke-num-bubble active';
+    }, cumDelay * 1000);
+    strokeAnimTimers.push(t1);
+
+    // Animate stroke
+    const t2 = setTimeout(() => {
+      path.style.stroke = '#c9a84c';
+      path.style.strokeWidth = '3.5';
+      path.style.transition = `stroke-dashoffset ${dur}s ease, stroke 0s`;
+      path.style.strokeDashoffset = '0';
+    }, cumDelay * 1000 + 50);
+    strokeAnimTimers.push(t2);
+
+    // Mark bubble done after stroke completes
+    const t3 = setTimeout(() => {
+      const b = document.getElementById(`bubble-${compIdx}-${i}`);
+      if (b) b.className = 'stroke-num-bubble done';
+    }, (cumDelay + dur) * 1000 + 100);
+    strokeAnimTimers.push(t3);
+
+    cumDelay += dur + (0.25 / strokeSpeed);
+  });
+}
+
+function replayAll() {
+  clearTimers();
+  const container = document.getElementById('strokeComponents');
+  const wraps = container.querySelectorAll('.stroke-svg-wrap');
+  wraps.forEach((wrap, idx) => {
+    const paths = wrap.querySelectorAll('path');
+    if (!paths.length) return;
+    animateStrokes(wrap, idx, idx * 0.3);
+  });
+}
+
+// Escape key closes modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeStrokeModalDirect();
+  if (e.key === 'Enter' && document.getElementById('page-quiz').classList.contains('hidden') === false) {
+    if (answered) nextQuestion();
+    else if (quizMode === 'type') submitType();
+  }
+});
 </script>
 </body>
 </html>
